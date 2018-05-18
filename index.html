@@ -1,0 +1,73 @@
+<!-- Client side -->
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <!-- style, can be replaced by a css file -->
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #message { list-style-type: none; margin: 0; padding: 0; }
+      #message { padding: 5px 10px; }
+      .ours { background: #98fb98; }
+      .theirs { background: #d3d3d3; }
+    </style>
+  </head>
+  <body>
+    <ul id="message"></ul>
+    <form action="">
+      <input id="m" autocomplete="off" /><button>Send</button> <!-- this button calls submit function -->
+    </form>
+    <script src="/socket.io/socket.io.js"></script>
+   <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+
+   <script>
+    // On ready : Declaring socket and binding the form's input to the socket
+    var userID = "";
+     $(function () {
+       var socket = io();
+       // when recieving a message from the server at the first connexion
+       socket.on('Giving uid', function(id){
+        userID = id;
+       });
+       //when recieving a message from the server which tells me that I missed some messages
+       socket.on('Missed messages', function(chains){
+        var i = 0;
+        var m = "";
+        var missed = chains+"#";
+        while(missed.length > i){
+          if(missed[i] == '#'){
+            i++;
+            m = m.substring(userID.length+1,m.length);
+            $('#message').append($('<li>').addClass("theirs").text(m));
+            m = "";
+          }else{
+            m += missed[i];
+            i++;
+          }
+        }
+       });
+       // function called by the button (send message)
+       $('form').submit(function(){
+         socket.emit('chat message',userID+":"+$('#m').val());
+          $('#m').val('');
+          return false;
+       });
+       // "on" is triggered when an event occured
+       // Triggered when the server redirects a message send by someone (can be me) to me
+       socket.on('chat message', function(msg){ 
+        var senderID = msg.substring(0,userID.length);
+        if (senderID.localeCompare(userID) == 0){
+          $('#message').append($('<li>').addClass("ours").text(msg.substring(userID.length+1,msg.length)));
+         }else{
+          $('#message').append($('<li>').addClass("theirs").text(msg.substring(userID.length+1,msg.length)));
+         }
+       });
+     });
+    </script>
+
+  </body>
+</html>
